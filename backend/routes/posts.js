@@ -30,6 +30,25 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
+router.get('/:id', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id)
+      .populate('author', 'name avatar bio')
+      .populate({
+        path: 'comments',
+        populate: { path: 'user', select: 'name avatar' },
+      });
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    return res.json(post);
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch post.', error: error.message });
+  }
+});
+
 router.get('/feed', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -46,6 +65,22 @@ router.get('/feed', protect, async (req, res) => {
     return res.json(posts);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch feed.', error: error.message });
+  }
+});
+
+router.get('/user/:id', async (req, res) => {
+  try {
+    const posts = await Post.find({ author: req.params.id })
+      .populate('author', 'name avatar bio')
+      .populate({
+        path: 'comments',
+        populate: { path: 'user', select: 'name avatar' },
+      })
+      .sort({ createdAt: -1 });
+
+    return res.json(posts);
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch user posts.', error: error.message });
   }
 });
 
